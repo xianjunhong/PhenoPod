@@ -126,6 +126,7 @@ class CameraBase:
         self.frame_rate = camera_config['frame_rate']
         self.cm_per_pixel = camera_config['cm_per_pixel']
         
+        # 配置与设置页选框始终使用翻转后的全画幅预览坐标。
         self.roi_offset_x = roi_config['offset_x']
         self.roi_offset_y = roi_config['offset_y']
         self.roi_width = roi_config['width']
@@ -260,8 +261,18 @@ class CameraBase:
             self.roi_width = aligned_width
             self.roi_height = aligned_height
             
+            # 相机先按传感器坐标裁剪，再执行ReverseX/ReverseY。
+            # 将预览选框逆映射到传感器；只在写入设备时换算一次，
+            # 保留配置及self.roi_offset_*中的预览坐标，避免重复打开时二次翻转。
+            sensor_offset_x = max_width - aligned_offset_x - aligned_width if self.reverse_x else aligned_offset_x
+            sensor_offset_y = max_height - aligned_offset_y - aligned_height if self.reverse_y else aligned_offset_y
+            print(
+                f"ROI坐标映射: 预览=({aligned_offset_x}, {aligned_offset_y}), "
+                f"传感器=({sensor_offset_x}, {sensor_offset_y}), "
+                f"翻转X={self.reverse_x}, 翻转Y={self.reverse_y}"
+            )
             ret = self.obj_cam_operation.set_roi(
-                aligned_offset_x, aligned_offset_y, 
+                sensor_offset_x, sensor_offset_y,
                 aligned_width, aligned_height,
                 self.reverse_x, self.reverse_y
             )

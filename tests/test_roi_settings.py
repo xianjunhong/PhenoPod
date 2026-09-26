@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
+import numpy as np
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from common.camera_base import CameraBase
@@ -107,6 +108,37 @@ def assert_hardware_roi(sdk, roi):
     assert tuple(sdk.values[key] for key in ("OffsetX", "OffsetY", "Width", "Height")) == roi
 
 
+def sdk_frame(sdk, sensor):
+    """MV-CU120-10UC crops in sensor coordinates, then reverses the image."""
+    nodes = sdk.values
+    x, y, w, h = (nodes[key] for key in ("OffsetX", "OffsetY", "Width", "Height"))
+    frame = sensor[y:y + h, x:x + w]
+    if nodes["ReverseX"]:
+        frame = frame[:, ::-1]
+    if nodes["ReverseY"]:
+        frame = frame[::-1]
+    return frame
+
+
+@pytest.mark.parametrize("reverse_x, reverse_y", [(False, False), (True, False), (False, True), (True, True)])
+def test_measurement_frame_matches_selection_in_mirrored_full_preview(config, sdk, reverse_x, reverse_y):
+    # Unique sensor pixels make any coordinate shift or double flip detectable.
+    sensor = np.arange(4024 * 3036, dtype=np.int32).reshape(3036, 4024)
+    config.set_roi_config(552, 228, 2812, 2732, reverse_x, reverse_y)
+    camera = CameraBase(config)
+    camera.deviceList = object()
+    config_bytes = Path(config.config_path).read_bytes()
+    assert camera.open_device(0, full_frame=True)[0]
+    full_preview = sdk_frame(sdk, sensor)
+    selected = full_preview[228:228 + 2732, 552:552 + 2812].copy()
+    camera.close_device()
+    assert camera.open_device(0)[0]
+    np.testing.assert_array_equal(sdk_frame(sdk, sensor), selected)
+    assert (camera.roi_offset_x, camera.roi_offset_y) == (552, 228)
+    camera.close_device()
+    assert Path(config.config_path).read_bytes() == config_bytes
+
+
 def test_entering_settings_loads_saved_selection(settings, config):
     handler, _ = settings
     assert handler.ui.roi_selector.get_roi() == stored_roi(config)
@@ -186,7 +218,8 @@ def test_save_survives_preview_reopen_and_applies_in_measurement(settings, confi
     assert handler.ui.roi_selector.get_roi() == expected
     handler.cleanup()
     assert measurement.open_device(0)[0]
-    assert_hardware_roi(sdk, expected)
+    # 默认X/Y翻转均开启，设备接收传感器坐标，UI/配置继续保存预览坐标。
+    assert_hardware_roi(sdk, (3120, 2228, 804, 604))
     measurement.close_device()
     warning.assert_not_called()
 
@@ -235,6 +268,10 @@ def test_full_frame_uses_actual_sensor_size_without_saving(settings, config, sdk
     handler.open_camera()
     assert_hardware_roi(sdk, (0, 0, 4096, 3072))
     assert handler.ui.roi_selector.camera_resolution == (4096, 3072)
+    handler.camera.close_device()
+    assert handler.camera.open_device(0)[0]
+    # 坐标映射采用设备真实全画幅尺寸，而不是配置中的4024x3036。
+    assert_hardware_roi(sdk, (2096, 1672, 1600, 1200))
     assert Path(config.config_path).read_bytes() == original_bytes
 
 

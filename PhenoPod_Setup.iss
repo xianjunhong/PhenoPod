@@ -1,5 +1,5 @@
 #define AppName "PhenoPod"
-#define AppVersion "1.1.1"
+#define AppVersion "1.1.3"
 #define AppPublisher "JinLab"
 #define AppExeName "PhenoPod.exe"
 
@@ -36,7 +36,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional options:"; Flags: unchecked
 
 [Files]
-Source: "dist\PhenoPod\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\package\PhenoPod\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"

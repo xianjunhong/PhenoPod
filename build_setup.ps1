@@ -6,7 +6,8 @@ $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -LiteralPath $projectRoot
 
 $pythonCommand = Get-Command python -ErrorAction Stop
-& $pythonCommand.Source -m PyInstaller --noconfirm --clean PhenoPod_onedir.spec
+$bundleDir = Join-Path $projectRoot "build\package"
+& $pythonCommand.Source -m PyInstaller --noconfirm --clean --distpath $bundleDir PhenoPod_onedir.spec
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller build failed with exit code $LASTEXITCODE"
 }

@@ -29,7 +29,9 @@ python start.py
 
 Windows 也可以双击 `启动.bat`。
 
-正式交付安装包位于 `dist/installer/PhenoPod_Setup_1.1.1.exe`，包含开始菜单、可选桌面快捷方式和卸载程序。接收方无需安装 Python。海康相机功能仍要求目标电脑安装对应的 MVS 设备驱动，本地图像导入和测量不依赖相机。
+正式交付安装包位于 `dist/installer/PhenoPod_Setup_1.1.3.exe`，包含开始菜单、可选桌面快捷方式和卸载程序。接收方无需安装 Python。海康相机功能仍要求目标电脑安装对应的 MVS 设备驱动，本地图像导入和测量不依赖相机。
+
+`dist/installer` 保存安装包及 SHA256 校验文件；展开的程序和运行依赖位于 `build/package/PhenoPod`，历史打包产物归档于 `build/archive`。
 
 重新构建安装包时，在项目根目录执行：
 
